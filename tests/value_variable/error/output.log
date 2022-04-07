@@ -1,0 +1,7 @@
+[ERROR]: Interpreter error, most recent action last:
+
+At "tests/value_variable/error/input.nix", undefined variable "a"
+  > 5 | a
+        ^
+
+

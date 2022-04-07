@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: 2022 Kevin Amado <kamadorueda@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+[dependencies.clap]
+default-features = false
+features = ["std"]
+version = "3"
+
+[dependencies.log]
+default-features = false
+features = ["std"]
+version = "0"
+
+[dependencies.nixel]
+default-features = false
+features = []
+version = "2"
+
+[dev-dependencies.walkdir]
+default-features = false
+version = "2"
+
+[package]
+authors = ["Kevin Amado <kamadorueda@gmail.com>"]
+categories = []
+description = "Reproducible builds, dev envs and deployments"
+edition = "2021"
+keywords = []
+license = "AGPL-3.0-only"
+name = "toros"
+repository = "https://github.com/kamadorueda/toros"
+version = "0.1.0"
+
+[profile.release]
+codegen-units = 1
+lto = true

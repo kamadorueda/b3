@@ -139,6 +139,8 @@ impl Runtime {
                                 location:       location.clone(),
                             }))
                         }
+                        "false" => Ok(Rc::new(Value::Boolean(false))),
+                        "true" => Ok(Rc::new(Value::Boolean(true))),
                         _ => Err(Error::Interpreter {
                             description: format!(
                                 "undefined variable {identifier:?}"

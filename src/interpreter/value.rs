@@ -15,6 +15,7 @@ use crate::interpreter::scope::ScopeKind;
 
 #[derive(Debug)]
 pub(crate) enum Value {
+    Boolean(bool),
     DeferredValue {
         ast:   AST,
         path:  Rc<String>,
@@ -176,6 +177,7 @@ impl Value {
 
     pub(crate) fn kind(&self) -> &str {
         match &self {
+            Value::Boolean { .. } => "Boolean",
             Value::BuiltInFunction { .. } => "BuiltInFunction",
             Value::DeferredValue { .. } => "DeferredValue",
             Value::Function { .. } => "Function",

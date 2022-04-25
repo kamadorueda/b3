@@ -1,0 +1,11 @@
+[INFO]: value = Function {
+    bind_to: Some(
+        "identity",
+    ),
+    implementation: Variable {
+        identifier: "identity",
+        position: (1, 11),
+    },
+    path: "tests/value_function/anonymous/input.nix",
+    scope: Scope { kind: Plain, bindings: 0 },
+}

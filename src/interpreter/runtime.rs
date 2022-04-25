@@ -96,7 +96,7 @@ impl Runtime {
                             path:  path.clone(),
                             scope: scope.clone(),
                         };
-                        let value = if argument_index < &arguments.len() {
+                        let value = if argument_index + 1 == arguments.len() {
                             value
                         } else {
                             Value::FunctionApplication {
@@ -152,8 +152,6 @@ impl Runtime {
 
             _ => Ok(value.clone()),
         };
-
-        log::trace!("value = {:#?}", &value);
 
         value
     }

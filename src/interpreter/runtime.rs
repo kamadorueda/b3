@@ -5,6 +5,8 @@
 use std::collections::LinkedList;
 use std::rc::Rc;
 
+use nixel::ast::StringPart;
+
 use super::runtime_stack_frame::RuntimeStackFrame;
 use crate::interpreter::error::Error;
 use crate::interpreter::location::Location;
@@ -111,6 +113,7 @@ impl Runtime {
                                 "built-in +" => Runtime::built_in_addition,
                                 "built-in -" => Runtime::built_in_subtraction,
                                 "built-in *" => Runtime::built_in_multiplication,
+                                //"built-in ++" => Runtime::built_in_concat,
                                 _ => unreachable!(),
                             };
 
@@ -252,4 +255,41 @@ impl Runtime {
         "*"
     );
 
+    fn built_in_concat(
+        &mut self,
+        mut args: Vec<Rc<Value>>,
+        location: &Location,
+    ) -> Result<Rc<Value>, Error> {
+        let rhs = args.remove(1);
+        let lhs = args.remove(0);
+
+        let lhs = self.advance_monotonically(lhs)?;
+        let rhs = self.advance_monotonically(rhs)?;
+
+        match (&*lhs, &*rhs) {
+            (Value::String { parts: lhs_value }, Value::String { parts: rhs_value }) => {
+                let mut new_value = LinkedList::<StringPart>::new();
+                for val in lhs_value {
+                    new_value.push_back(*val);
+                    // error[E0507]: cannot move out of `*val` which is behind a shared reference
+                    // move occurs because `*val` has type `StringPart`, which does not implement the `Copy` trait
+                }
+                for val in rhs_value {
+                    new_value.push_back(*val);
+                }
+                Ok(Rc::new(Value::String { parts: new_value }))
+            }
+            // TODO list + list
+            _ => Err(Error::Interpreter {
+                description: format!(
+                    "built-in + is not implemented for operands of type {:?} \
+                    and {:?}",
+                    lhs.kind(),
+                    rhs.kind(),
+                ),
+                location:    location.clone(),
+                stack:       self.stack.clone(),
+            }),
+        }
+    }
 }

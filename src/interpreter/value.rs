@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::rc::Rc;
+use std::collections::LinkedList;
 
 use nixel::ast::BinaryOperator;
 use nixel::ast::UnaryOperator;
+use nixel::ast::StringPart;
 use nixel::ast::AST;
 
 use super::location::Location;
@@ -75,6 +77,9 @@ pub(crate) enum Value {
         location:   Location,
         scope:      Scope,
     },
+    String {
+        parts: LinkedList<StringPart>,
+    }
 }
 
 impl Value {
@@ -127,6 +132,12 @@ impl Value {
                 )
             }
 
+            /*
+            AST::IfThenElse { predicate, then, else_, position } => {
+                // ...
+            }
+            */
+
             AST::Function { argument, definition, .. } => {
                 Value::Function {
                     bind_to: argument,
@@ -151,6 +162,8 @@ impl Value {
             }
 
             AST::Int { value, .. } => Value::Int(value),
+
+            AST::String { parts, .. } => Value::String { parts },
 
             AST::LetIn { bindings, target, position: _ } => {
                 let bindings = Bindings::new(bindings);
@@ -198,6 +211,7 @@ impl Value {
             Value::FunctionApplication { .. } => "FunctionApplication",
             Value::Int { .. } => "Int",
             Value::Variable { .. } => "Variable",
+            Value::String { .. } => "String",
         }
     }
 }

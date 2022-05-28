@@ -57,10 +57,19 @@ SPDX-License-Identifier: AGPL-3.0-only
   - [x] Function (without destructuring and ellipsis)
   - [x] Function Application
   - [x] Deferred Values (Laziness)
+  - [ ] Control flow (if then else)
 - Built-ins:
-  - [x] Addition (+)
-  - [x] Subtraction (-)
-  - [x] Multiplication (*)
+  - Binary operators:
+    - [x] Addition (+)
+    - [x] Subtraction (-)
+    - [x] Multiplication (*)
+    - [ ] Division (/)
+    - [ ] Concatenation (++)
+    - [ ] EqualTo (==)
+    - ...
+  - Unary operators:
+    - [ ] Negation (-)
+    - [ ] Not (!)
 - Store interface:
   - [ ] Rust trait
 - Store implementations:

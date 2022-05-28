@@ -59,6 +59,8 @@ SPDX-License-Identifier: AGPL-3.0-only
   - [x] Deferred Values (Laziness)
 - Built-ins:
   - [x] Addition (+)
+  - [x] Subtraction (-)
+  - [x] Multiplication (*)
 - Store interface:
   - [ ] Rust trait
 - Store implementations:

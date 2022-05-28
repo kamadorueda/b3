@@ -1,0 +1,15 @@
+[ERROR]: Interpreter error, most recent action last:
+
+At "tests/built_in_-/overflow/input.nix", evaluating "built-in -"
+  > 5 | 0 - 9223372036854775807 - 2
+                                ^
+
+At "tests/built_in_-/overflow/input.nix", evaluating "built-in -"
+  > 5 | 0 - 9223372036854775807 - 2
+          ^
+
+At "tests/built_in_-/overflow/input.nix", integer overflow while subtracting -9223372036854775807 and 2
+  > 5 | 0 - 9223372036854775807 - 2
+                                ^
+
+

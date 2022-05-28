@@ -11,6 +11,58 @@ use crate::interpreter::location::Location;
 use crate::interpreter::scope::ScopeKind;
 use crate::interpreter::value::Value;
 
+
+
+macro_rules! build_math_fn {
+    ($name:tt, $method:tt, $action:literal, $symbol:literal) => {
+        fn $name(
+            &mut self,
+            mut args: Vec<Rc<Value>>,
+            location: &Location,
+        ) -> Result<Rc<Value>, Error> {
+            let rhs = args.remove(1);
+            let lhs = args.remove(0);
+
+            let lhs = self.advance_monotonically(lhs)?;
+            let rhs = self.advance_monotonically(rhs)?;
+
+            let action = $action;
+            let symbol = $symbol;
+
+            match (&*lhs, &*rhs) {
+                (Value::Int(lhs_value), Value::Int(rhs_value)) => {
+                    //match lhs_value.checked_add(*rhs_value) {
+                    //match lhs_value.checked_mul(*rhs_value) {
+                    match lhs_value.$method(*rhs_value) {
+                        Some(value) => Ok(Rc::new(Value::Int(value))),
+                        None => Err(Error::Interpreter {
+                            description: format!(
+                                "integer overflow while {action} {lhs_value} and \
+                                {rhs_value}"
+                            ),
+                            location:    location.clone(),
+                            stack:       self.stack.clone(),
+                        }),
+                    }
+                }
+                _ => Err(Error::Interpreter {
+                    description: format!(
+                        "built-in {symbol} is not implemented for operands of type {:?} \
+                        and {:?}",
+                        lhs.kind(),
+                        rhs.kind(),
+                    ),
+                    location:    location.clone(),
+                    stack:       self.stack.clone(),
+                }),
+            }
+
+        }
+    };
+}
+
+
+
 #[derive(Debug)]
 pub(crate) struct Runtime {
     pub(crate) stack: LinkedList<RuntimeStackFrame>,
@@ -57,6 +109,8 @@ impl Runtime {
                         if *expected_arguments == arguments.len() {
                             let function = match identifier.as_str() {
                                 "built-in +" => Runtime::built_in_addition,
+                                "built-in -" => Runtime::built_in_subtraction,
+                                "built-in *" => Runtime::built_in_multiplication,
                                 _ => unreachable!(),
                             };
 
@@ -113,7 +167,7 @@ impl Runtime {
                     }
                     _ => Err(Error::Interpreter {
                         description: format!(
-                            "calling a {:?} is not currently possible",
+                            "attempt to call something which is not a function but a {:?}",
                             function.kind(),
                         ),
                         location:    location.clone(),
@@ -177,41 +231,25 @@ impl Runtime {
         Ok(value)
     }
 
-    fn built_in_addition(
-        &mut self,
-        mut args: Vec<Rc<Value>>,
-        location: &Location,
-    ) -> Result<Rc<Value>, Error> {
-        let rhs = args.remove(1);
-        let lhs = args.remove(0);
+    build_math_fn!(
+        built_in_addition,
+        checked_add,
+        "adding",
+        "+"
+    );
 
-        let lhs = self.advance_monotonically(lhs)?;
-        let rhs = self.advance_monotonically(rhs)?;
+    build_math_fn!(
+        built_in_subtraction,
+        checked_sub,
+        "subtracting",
+        "-"
+    );
 
-        match (&*lhs, &*rhs) {
-            (Value::Int(lhs_value), Value::Int(rhs_value)) => {
-                match lhs_value.checked_add(*rhs_value) {
-                    Some(value) => Ok(Rc::new(Value::Int(value))),
-                    None => Err(Error::Interpreter {
-                        description: format!(
-                            "integer overflow while adding {lhs_value} and \
-                             {rhs_value}"
-                        ),
-                        location:    location.clone(),
-                        stack:       self.stack.clone(),
-                    }),
-                }
-            }
-            _ => Err(Error::Interpreter {
-                description: format!(
-                    "built-in + is not implemented for operands of type {:?} \
-                     and {:?}",
-                    lhs.kind(),
-                    rhs.kind(),
-                ),
-                location:    location.clone(),
-                stack:       self.stack.clone(),
-            }),
-        }
-    }
+    build_math_fn!(
+        built_in_multiplication,
+        checked_mul,
+        "multiplying",
+        "*"
+    );
+
 }

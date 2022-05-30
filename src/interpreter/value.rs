@@ -3,8 +3,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::rc::Rc;
+use std::collections::LinkedList;
 
 use nixel::ast::BinaryOperator;
+use nixel::ast::UnaryOperator;
+use nixel::ast::StringPart;
 use nixel::ast::AST;
 
 use super::location::Location;
@@ -12,6 +15,35 @@ use super::location::LocationInFileFragment;
 use crate::interpreter::bindings::Bindings;
 use crate::interpreter::scope::Scope;
 use crate::interpreter::scope::ScopeKind;
+
+macro_rules! value_function_application {
+    ($arguments:tt, $function:expr, $path:tt, $scope:tt, $position:tt) => {
+        Value::FunctionApplication {
+            argument_index: 0,
+            arguments:      $arguments
+                .into_iter()
+                .map(|ast| {
+                    Rc::new(Value::DeferredValue {
+                        ast, // error[E0308]: mismatched types
+                        // expected enum `AST`, found struct `Box`
+                        // help: consider unboxing the value
+                        //ast: *ast, // error[E0614]: type `AST` cannot be dereferenced
+                        path: $path.clone(),
+                        scope: $scope.clone(),
+                    })
+                })
+                .collect(),
+            function:       Rc::new($function),
+            location:       Location::InFileFragment(
+                LocationInFileFragment {
+                    column: $position.column,
+                    line: $position.line,
+                    $path,
+                },
+            ),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub(crate) enum Value {
@@ -45,11 +77,16 @@ pub(crate) enum Value {
         location:   Location,
         scope:      Scope,
     },
+    String {
+        parts: LinkedList<StringPart>,
+    }
 }
 
 impl Value {
     pub(crate) fn from_ast(path: Rc<String>, ast: AST, scope: &Scope) -> Value {
         match ast {
+            // https://github.com/kamadorueda/nixel/blob/main/src/ast.rs
+
             AST::BinaryOperation { operands, operator, position } => {
                 let identifier = match operator {
                     BinaryOperator::Addition => "built-in +",
@@ -69,32 +106,37 @@ impl Value {
                     BinaryOperator::Update => "built-in //",
                 };
 
-                Value::FunctionApplication {
-                    argument_index: 0,
-                    arguments:      operands
-                        .into_iter()
-                        .map(|ast| {
-                            Rc::new(Value::DeferredValue {
-                                ast,
-                                path: path.clone(),
-                                scope: scope.clone(),
-                            })
-                        })
-                        .collect(),
-
-                    function: Rc::new(Value::BuiltInFunction {
+                value_function_application!(
+                    operands,
+                    Value::BuiltInFunction {
                         identifier:         identifier.to_string(),
                         expected_arguments: 2,
-                    }),
-                    location: Location::InFileFragment(
-                        LocationInFileFragment {
-                            column: position.column,
-                            line: position.line,
-                            path,
-                        },
-                    ),
-                }
+                    },
+                    path, scope, position
+                )
             }
+
+            AST::UnaryOperation { operand, operator, position } => {
+                let identifier = match operator {
+                    UnaryOperator::Not => "built-in not",
+                    UnaryOperator::Negate => "built-in negate",
+                };
+                let operands = vec![*operand];
+                value_function_application!(
+                    operands,
+                    Value::BuiltInFunction {
+                        identifier:         identifier.to_string(),
+                        expected_arguments: 2,
+                    },
+                    path, scope, position
+                )
+            }
+
+            /*
+            AST::IfThenElse { predicate, then, else_, position } => {
+                // ...
+            }
+            */
 
             AST::Function { argument, definition, .. } => {
                 Value::Function {
@@ -108,35 +150,20 @@ impl Value {
 
             AST::FunctionApplication { arguments, function } => {
                 let position = function.position();
-
-                Value::FunctionApplication {
-                    argument_index: 0,
-                    arguments:      arguments
-                        .into_iter()
-                        .map(|ast| {
-                            Rc::new(Value::DeferredValue {
-                                ast,
-                                path: path.clone(),
-                                scope: scope.clone(),
-                            })
-                        })
-                        .collect(),
-                    function:       Rc::new(Value::from_ast(
+                value_function_application!(
+                    arguments,
+                    Value::from_ast(
                         path.clone(),
                         *function,
                         scope,
-                    )),
-                    location:       Location::InFileFragment(
-                        LocationInFileFragment {
-                            column: position.column,
-                            line: position.line,
-                            path,
-                        },
                     ),
-                }
+                    path, scope, position
+                )
             }
 
             AST::Int { value, .. } => Value::Int(value),
+
+            AST::String { parts, .. } => Value::String { parts },
 
             AST::LetIn { bindings, target, position: _ } => {
                 let bindings = Bindings::new(bindings);
@@ -184,6 +211,7 @@ impl Value {
             Value::FunctionApplication { .. } => "FunctionApplication",
             Value::Int { .. } => "Int",
             Value::Variable { .. } => "Variable",
+            Value::String { .. } => "String",
         }
     }
 }

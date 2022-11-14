@@ -3,82 +3,90 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::cell::RefCell;
-use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::time::Instant;
 
-use log::Level;
-use log::Metadata;
-use log::Record;
-
-pub struct Logger<Output>
+pub struct Logger<Buffer>
 where
-    Output: Write,
+    Buffer: std::io::Write,
 {
-    started_at: Instant,
-    output:     Arc<Mutex<RefCell<Output>>>,
+    started_at: std::time::Instant,
+    buffer: Arc<Mutex<RefCell<Buffer>>>,
 }
 
-impl<Output> Logger<Output>
-where
-    Output: Write,
-{
-    pub fn new(output: Arc<Mutex<RefCell<Output>>>) -> Logger<Output> {
-        Logger { started_at: Instant::now(), output }
-    }
+pub fn initialize() {
+    let logger = Box::new(Logger {
+        started_at: std::time::Instant::now(),
+        buffer: Arc::new(Mutex::new(RefCell::new(std::io::stdout()))),
+    });
+
+    log::set_boxed_logger(logger).unwrap_or_else(|error| {
+        panic!("Unable to initialize logger: {error}");
+    });
 }
 
-impl<Output> log::Log for Logger<Output>
+impl<Buffer> log::Log for Logger<Buffer>
 where
-    Output: Send + Sync + Write,
+    Buffer: Send + Sync + std::io::Write,
 {
-    fn enabled(&self, _: &Metadata) -> bool {
+    #[inline(always)]
+    fn enabled(&self, _: &log::Metadata) -> bool {
         true
     }
 
-    fn log(&self, record: &Record) {
+    fn log(&self, record: &log::Record) {
+        let buffer_cell = self.buffer.lock().unwrap_or_else(|error| {
+            panic!("Unable to acquire the logger's lock: {error}.");
+        });
+
+        let mut buffer = buffer_cell.try_borrow_mut().unwrap_or_else(|error| {
+            panic!("Unable to borrow the logger's buffer: {error}.")
+        });
+
         let metadata = record.metadata();
+        let level = metadata.level();
+        let args = record.args();
 
-        if let Ok(output) = self.output.lock() {
-            let level = metadata.level();
+        match level {
+            log::Level::Trace => {
+                let elapsed = self.started_at.elapsed().as_secs_f64();
+                let target = metadata.target();
+                let line = record.line().unwrap_or(u32::MAX);
 
-            match level {
-                Level::Trace => {
-                    writeln!(
-                        output.borrow_mut(),
-                        "[{} @ {:>8.3} @ {}#{}]: {}",
-                        level,
-                        self.started_at.elapsed().as_secs_f64(),
-                        metadata.target(),
-                        record.line().unwrap_or(u32::MAX),
-                        record.args(),
-                    )
-                    .unwrap();
-                }
-                Level::Debug => {
-                    writeln!(
-                        output.borrow_mut(),
-                        "[{} @ {}#{}]: {}",
-                        level,
-                        metadata.target(),
-                        record.line().unwrap_or(u32::MAX),
-                        record.args(),
-                    )
-                    .unwrap();
-                }
-                _ => {
-                    writeln!(
-                        output.borrow_mut(),
-                        "[{}]: {}",
-                        level,
-                        record.args()
-                    )
-                    .unwrap();
-                }
-            }
+                writeln!(
+                    buffer,
+                    "{level} @ {elapsed:>8.3}, {target}#{line}: {args}",
+                )
+            },
+            log::Level::Debug => {
+                let target = metadata.target();
+                let line = record.line().unwrap_or(u32::MAX);
+
+                writeln!(buffer, "{level}, {target}#{line}: {args}",)
+            },
+            _ => {
+                writeln!(buffer, "{level}: {args}")
+            },
         }
+        .unwrap_or_else(|error| {
+            panic!("Unable to write to the logger's buffer: {error}.")
+        });
     }
 
     fn flush(&self) {}
+}
+
+pub fn bytes() -> Box<Logger<std::io::Cursor<Vec<u8>>>> {
+    Box::new(Logger {
+        started_at: std::time::Instant::now(),
+        buffer: Arc::new(Mutex::new(RefCell::new(std::io::Cursor::new(
+            Vec::new(),
+        )))),
+    })
+}
+
+impl Logger<std::io::Cursor<Vec<u8>>> {
+    pub fn get_buffer(&self) -> Arc<Mutex<RefCell<std::io::Cursor<Vec<u8>>>>> {
+        return self.buffer.clone();
+    }
 }

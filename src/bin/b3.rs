@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pub mod bin_toros;
-pub(crate) mod cli_action;
-pub(crate) mod cli_args;
-pub(crate) mod parse;
+fn main() {
+    b3::logger::initialize();
+    std::process::exit(b3::cli::main(std::env::args()));
+}

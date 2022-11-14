@@ -1,8 +1,8 @@
-pub fn main<Args>(args: Args) -> i32
+pub fn main<Args>(args: Args) -> Result<(), clap::Error>
 where
     Args: IntoIterator<Item = String>,
 {
-    let parser = clap::Command::new("b3")
+    let parsed = clap::Command::new("b3")
         .about("Bit by bit reproducible builds, dev envs and deployments.")
         .arg(
             clap::Arg::new("log-level")
@@ -24,9 +24,8 @@ where
                 ),
         )
         .arg_required_else_help(true)
-        .term_width(80);
-
-    let parsed = parser.get_matches_from(args);
+        .term_width(80)
+        .try_get_matches_from(args)?;
 
     log::set_max_level(
         parsed
@@ -40,14 +39,10 @@ where
 
     match parsed.subcommand() {
         Some(("eval", parsed)) => eval(parsed),
-        _ => {
-            // log::error!("Not subcommand was specified, please run with
-            // --help")
-            0
-        },
+        _ => Ok(()),
     }
 }
 
-fn eval(parsed: &clap::ArgMatches) -> i32 {
-    0
+fn eval(_: &clap::ArgMatches) -> Result<(), clap::Error> {
+    Ok(())
 }

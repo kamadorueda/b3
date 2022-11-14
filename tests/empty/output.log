@@ -1,0 +1,11 @@
+Bit by bit reproducible builds, dev envs and deployments.
+
+Usage: b3 [OPTIONS] [COMMAND]
+
+Commands:
+  eval  Evaluate the provided expression as much as possible.
+  help  Print this message or the help of the given subcommand(s)
+
+Options:
+      --log-level <log-level>  Verbosity level [default: info] [possible values: trace, debug, info, warn, error, off]
+  -h, --help                   Print help information

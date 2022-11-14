@@ -4,5 +4,5 @@
 
 fn main() {
     b3::logger::initialize();
-    std::process::exit(b3::cli::main(std::env::args()));
+    b3::cli::main(std::env::args()).unwrap_or_else(|error| error.exit())
 }

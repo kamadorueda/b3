@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022 Kevin Amado <kamadorueda@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 {
   inputs = {
     blank.url = "github:divnix/blank";
@@ -12,7 +16,7 @@
   outputs = inputs: let
     commit = inputs.self.shortRev or "dirty";
     date = inputs.self.lastModifiedDate or inputs.self.lastModified or "19700101";
-    version = "5.0.1+${builtins.substring 0 8 date}.${commit}";
+    version = "0.1.0+${builtins.substring 0 8 date}.${commit}";
 
     overlay = self: super: {
       b3 = self.rustPlatform.buildRustPackage {
@@ -60,6 +64,8 @@
           nixpkgs.cargo-tarpaulin
           nixpkgs.clang
           nixpkgs.linuxPackages_latest.perf
+          nixpkgs.mdbook
+          nixpkgs.mdbook-linkcheck
           nixpkgs.reuse
           nixpkgs.valgrind
 
@@ -71,7 +77,7 @@
 
             text = ''
               copyright='Kevin Amado <kamadorueda@gmail.com>'
-              license='GPL-3.0-only'
+              license='AGPL-3.0-only'
 
               find . -type f -name '*.license' -exec rm {} +
 

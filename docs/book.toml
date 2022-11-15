@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2022 Kevin Amado <kamadorueda@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+[book]
+authors = ["Kevin Amado"]
+language = "en"
+multilingual = false
+src = "src"
+title = "B3 - Bit by bit reproducible builds, dev envs and deployments"
+
+[output.html]
+default-theme = "light"
+edit-url-template = "https://github.com/kamadorueda/b3/edit/main/{path}"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/kamadorueda/b3"
+git-repository-icon = "fa-github"
+no-section-label = false
+site-url = "/"
+
+[output.html.fold]
+enable = true
+level = 2
+
+[output.html.print]
+enable = true
+page-break = true
+
+[output.linkcheck]

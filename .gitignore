@@ -3,4 +3,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 /**/target/
+/docs/book/
 /tarpaulin-report.html

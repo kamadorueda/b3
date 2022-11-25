@@ -2,4 +2,5 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pub mod eval;
+pub(crate) mod eval;
+pub(crate) mod parse;

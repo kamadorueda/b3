@@ -6,7 +6,7 @@ pub fn main<Args>(args: Args) -> Result<(), clap::Error>
 where
     Args: IntoIterator<Item = String>,
 {
-    let parsed = clap::Command::new("b3")
+    let args = clap::Command::new("b3")
         .about("Bit by bit reproducible builds, dev envs and deployments.")
         .arg(
             clap::Arg::new("log-level")
@@ -27,26 +27,44 @@ where
                         .value_parser(clap::value_parser!(std::path::PathBuf)),
                 ),
         )
+        .subcommand(
+            clap::Command::new("parse")
+                .about("Parse the provided expression and pretty print it.")
+                .arg(
+                    clap::Arg::new("path")
+                        .help("Path to evaluate")
+                        .value_parser(clap::value_parser!(std::path::PathBuf))
+                        .required(true),
+                ),
+        )
         .arg_required_else_help(true)
         .term_width(80)
         .try_get_matches_from(args)?;
 
     log::set_max_level(
-        parsed
-            .get_one::<String>("log-level")
+        args.get_one::<String>("log-level")
             .expect("Unable to parse log-level as a String.")
             .as_str()
             .parse::<log::LevelFilter>()
             .expect("Unable to parse log-level as a log::LevelFilter"),
     );
-    log::debug!("{parsed:#?}");
+    log::debug!("{args:#?}");
 
-    match parsed.subcommand() {
-        Some(("eval", parsed)) => eval(parsed),
+    match args.subcommand() {
+        Some(("eval", args)) => eval(args),
+        Some(("parse", args)) => parse(args),
         _ => Ok(()),
     }
 }
 
-fn eval(_: &clap::ArgMatches) -> Result<(), clap::Error> {
+fn eval(args: &clap::ArgMatches) -> Result<(), clap::Error> {
+    Ok(())
+}
+
+fn parse(args: &clap::ArgMatches) -> Result<(), clap::Error> {
+    let path = args
+        .get_one::<std::path::PathBuf>("path")
+        .expect("Unable to parse path as a PathBuf.");
+
     Ok(())
 }

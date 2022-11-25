@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2022 Kevin Amado <kamadorueda@gmail.com>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
-
 [package]
 authors = ["Kevin Amado <kamadorueda@gmail.com>"]
 categories = []
@@ -20,30 +19,20 @@ default = []
 name = "b3"
 required-features = []
 
-[dependencies.clap]
-version = "*"
-default-features = false
-features = ["std"]
+[dependencies]
+clap = { version = "*", default-features = false, features = [
+  "error-context",
+  "std"
+] }
+log = { version = "*", default-features = false, features = [] }
+nixel = { version = "*", default-features = false, features = [] }
 
-[dependencies.log]
-version = "*"
-default-features = false
-features = ["std"]
-
-[dependencies.nixel]
-default-features = false
-features = []
-version = "*"
-
-[dev-dependencies.walkdir]
-default-features = false
-version = "*"
+[dev-dependencies]
+walkdir = { version = "*", default-features = false, features = [] }
 
 [profile.release]
-codegen-units = 1
 lto = true
-opt-level = 3
-
-[profile.release.build-override]
 codegen-units = 1
 opt-level = 3
+build-override = { codegen-units = 1, opt-level = 3 }
+package = { "*" = { codegen-units = 1, opt-level = 3 } }

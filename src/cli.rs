@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+
+
 use anyhow::Context;
 
 pub fn main<Args>(args: Args) -> anyhow::Result<()>
@@ -21,8 +23,8 @@ where
                 .required(false),
         )
         .subcommand(
-            clap::Command::new("eval")
-                .about("Evaluate the provided expression as much as possible.")
+            clap::Command::new("simplify")
+                .about("Simplify the provided expression as much as possible.")
                 .arg(
                     clap::Arg::new("path")
                         .help("Path to evaluate")
@@ -53,27 +55,38 @@ where
     log::debug!("{args:#?}");
 
     match args.subcommand() {
-        Some(("eval", args)) => eval(args),
         Some(("parse", args)) => parse(args),
+        Some(("simplify", args)) => simplify(args),
+        Some((subcommand, _)) => {
+            Err(anyhow::anyhow!("Unknown subcommand: {subcommand}"))
+        },
         _ => Ok(()),
     }
 }
 
-fn eval(args: &clap::ArgMatches) -> anyhow::Result<()> {
-    Ok(())
-}
-
 fn parse(args: &clap::ArgMatches) -> anyhow::Result<()> {
     let path = args
-        .get_one::<std::path::PathBuf>("path")
-        .expect("Unable to parse path as a PathBuf.");
+        .try_get_one::<std::path::PathBuf>("path")?
+        .ok_or_else(|| anyhow::anyhow!("Unable to parse path"))?;
 
     let input = std::fs::read_to_string(path)
         .with_context(|| format!("Unable to read file: {path:?}"))?;
 
-    let parsed = crate::core::parse::parse(input);
+    let expression = crate::core::parse::parse(input);
 
-    println!("{parsed:#?}");
+    log::info!(target: "stdout", "{expression:#?}");
+
+    Ok(())
+}
+
+fn simplify(args: &clap::ArgMatches) -> anyhow::Result<()> {
+    let path = args
+        .try_get_one::<std::path::PathBuf>("path")?
+        .ok_or_else(|| anyhow::anyhow!("Unable to parse path"))?;
+
+    let expression = crate::core::simplify::simplify(path)?;
+
+    log::info!(target: "stdout", "{expression:#?}");
 
     Ok(())
 }

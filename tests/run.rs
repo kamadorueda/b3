@@ -24,7 +24,7 @@ fn bin() -> anyhow::Result<()> {
 
     for path in find_files("tests")
         .into_iter()
-        .filter(|path| path.ends_with("/args.lst"))
+        .filter(|path| path.ends_with("args.lst"))
     {
         let args: Vec<String> = ["b3"]
             .into_iter()

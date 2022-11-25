@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -13,12 +14,14 @@ where
 {
     started_at: std::time::Instant,
     buffer: Arc<Mutex<Buffer>>,
+    buffer_stdout: bool,
 }
 
 pub fn initialize() -> anyhow::Result<()> {
     let logger = Box::new(Logger {
         started_at: std::time::Instant::now(),
         buffer: Arc::new(Mutex::new(std::io::stderr())),
+        buffer_stdout: false,
     });
 
     log::set_logger(Box::leak(logger))
@@ -41,33 +44,42 @@ where
         });
 
         let metadata = record.metadata();
-        let level = metadata.level();
+
+        let target = metadata.target();
         let args = record.args();
 
-        match level {
-            log::Level::Trace => {
-                let elapsed = self.started_at.elapsed().as_secs_f64();
-                let target = metadata.target();
-                let line = record.line().unwrap_or(u32::MAX);
+        if target == "stdout" {
+            if self.buffer_stdout {
+                writeln!(buffer, "{args}")
+            } else {
+                writeln!(std::io::stdout().lock(), "{args}")
+            }
+        } else {
+            let level = metadata.level();
 
-                writeln!(
-                    buffer,
-                    "{level} @ {elapsed:>8.3}, {target}#{line}: {args}",
-                )
-            },
-            log::Level::Debug => {
-                let target = metadata.target();
-                let line = record.line().unwrap_or(u32::MAX);
+            match level {
+                log::Level::Trace => {
+                    let elapsed = self.started_at.elapsed().as_secs_f64();
+                    let line = record.line().unwrap_or(u32::MAX);
 
-                writeln!(buffer, "{level}, {target}#{line}: {args}")
-            },
-            _ => {
-                writeln!(buffer, "{level}: {args}")
-            },
+                    writeln!(
+                        buffer,
+                        "{level} @ {elapsed:>8.3}, {target}#{line}: {args}",
+                    )
+                },
+                log::Level::Debug => {
+                    let line = record.line().unwrap_or(u32::MAX);
+
+                    writeln!(buffer, "{level}, {target}#{line}: {args}")
+                },
+                _ => {
+                    writeln!(buffer, "{level}: {args}")
+                },
+            }
         }
         .unwrap_or_else(|error| {
             panic!("Unable to write to the logger's buffer: {error}.")
-        });
+        })
     }
 
     fn flush(&self) {}
@@ -77,11 +89,12 @@ pub fn bytes() -> Box<Logger<std::io::Cursor<Vec<u8>>>> {
     Box::new(Logger {
         started_at: std::time::Instant::now(),
         buffer: Arc::new(Mutex::new(std::io::Cursor::new(Vec::new()))),
+        buffer_stdout: true,
     })
 }
 
 impl Logger<std::io::Cursor<Vec<u8>>> {
     pub fn get_buffer(&self) -> Arc<Mutex<std::io::Cursor<Vec<u8>>>> {
-        return self.buffer.clone();
+        self.buffer.clone()
     }
 }

@@ -20,12 +20,14 @@ name = "b3"
 required-features = []
 
 [dependencies]
+anyhow = { version = "*", default-features = false, features = ["std"] }
 clap = { version = "*", default-features = false, features = [
   "error-context",
   "std"
 ] }
 log = { version = "*", default-features = false, features = [] }
 nixel = { version = "*", default-features = false, features = [] }
+thiserror = { version = "*", default-features = false, features = [] }
 
 [dev-dependencies]
 walkdir = { version = "*", default-features = false, features = [] }

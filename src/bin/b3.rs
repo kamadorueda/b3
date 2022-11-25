@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     b3::logger::initialize();
-    b3::cli::main(std::env::args()).unwrap_or_else(|error| error.exit())
+    b3::cli::main(std::env::args())
 }

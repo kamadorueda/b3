@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pub fn main<Args>(args: Args) -> Result<(), clap::Error>
+use anyhow::Context;
+
+pub fn main<Args>(args: Args) -> anyhow::Result<()>
 where
     Args: IntoIterator<Item = String>,
 {
@@ -57,14 +59,21 @@ where
     }
 }
 
-fn eval(args: &clap::ArgMatches) -> Result<(), clap::Error> {
+fn eval(args: &clap::ArgMatches) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn parse(args: &clap::ArgMatches) -> Result<(), clap::Error> {
+fn parse(args: &clap::ArgMatches) -> anyhow::Result<()> {
     let path = args
         .get_one::<std::path::PathBuf>("path")
         .expect("Unable to parse path as a PathBuf.");
+
+    let input = std::fs::read_to_string(path)
+        .with_context(|| format!("Unable to read to a string: {path:?}"))?;
+
+    let parsed = crate::core::parse::parse(input);
+
+    println!("{parsed:#?}");
 
     Ok(())
 }

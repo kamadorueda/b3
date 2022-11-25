@@ -17,7 +17,7 @@ fn bin() {
 
     let buffer = logger.get_buffer();
 
-    log::set_boxed_logger(logger).unwrap_or_else(|error| {
+    log::set_logger(Box::leak(logger)).unwrap_or_else(|error| {
         panic!("Unable to initialize logger: {error}");
     });
 

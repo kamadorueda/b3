@@ -17,10 +17,10 @@ where
 pub fn initialize() {
     let logger = Box::new(Logger {
         started_at: std::time::Instant::now(),
-        buffer: Arc::new(Mutex::new(RefCell::new(std::io::stdout()))),
+        buffer: Arc::new(Mutex::new(RefCell::new(std::io::stderr()))),
     });
 
-    log::set_boxed_logger(logger).unwrap_or_else(|error| {
+    log::set_logger(Box::leak(logger)).unwrap_or_else(|error| {
         panic!("Unable to initialize logger: {error}");
     });
 }

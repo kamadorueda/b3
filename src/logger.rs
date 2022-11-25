@@ -2,27 +2,28 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use std::cell::RefCell;
 use std::sync::Arc;
 use std::sync::Mutex;
+
+use anyhow::Context;
 
 pub struct Logger<Buffer>
 where
     Buffer: std::io::Write,
 {
     started_at: std::time::Instant,
-    buffer: Arc<Mutex<RefCell<Buffer>>>,
+    buffer: Arc<Mutex<Buffer>>,
 }
 
-pub fn initialize() {
+pub fn initialize() -> anyhow::Result<()> {
     let logger = Box::new(Logger {
         started_at: std::time::Instant::now(),
-        buffer: Arc::new(Mutex::new(RefCell::new(std::io::stderr()))),
+        buffer: Arc::new(Mutex::new(std::io::stderr())),
     });
 
-    log::set_logger(Box::leak(logger)).unwrap_or_else(|error| {
-        panic!("Unable to initialize logger: {error}");
-    });
+    log::set_logger(Box::leak(logger))
+        .map_err(|error| anyhow::anyhow!(error))
+        .context("Unable to initialize logger")
 }
 
 impl<Buffer> log::Log for Logger<Buffer>
@@ -35,12 +36,8 @@ where
     }
 
     fn log(&self, record: &log::Record) {
-        let buffer_cell = self.buffer.lock().unwrap_or_else(|error| {
+        let mut buffer = self.buffer.lock().unwrap_or_else(|error| {
             panic!("Unable to acquire the logger's lock: {error}.");
-        });
-
-        let mut buffer = buffer_cell.try_borrow_mut().unwrap_or_else(|error| {
-            panic!("Unable to borrow the logger's buffer: {error}.")
         });
 
         let metadata = record.metadata();
@@ -62,7 +59,7 @@ where
                 let target = metadata.target();
                 let line = record.line().unwrap_or(u32::MAX);
 
-                writeln!(buffer, "{level}, {target}#{line}: {args}",)
+                writeln!(buffer, "{level}, {target}#{line}: {args}")
             },
             _ => {
                 writeln!(buffer, "{level}: {args}")
@@ -79,14 +76,12 @@ where
 pub fn bytes() -> Box<Logger<std::io::Cursor<Vec<u8>>>> {
     Box::new(Logger {
         started_at: std::time::Instant::now(),
-        buffer: Arc::new(Mutex::new(RefCell::new(std::io::Cursor::new(
-            Vec::new(),
-        )))),
+        buffer: Arc::new(Mutex::new(std::io::Cursor::new(Vec::new()))),
     })
 }
 
 impl Logger<std::io::Cursor<Vec<u8>>> {
-    pub fn get_buffer(&self) -> Arc<Mutex<RefCell<std::io::Cursor<Vec<u8>>>>> {
+    pub fn get_buffer(&self) -> Arc<Mutex<std::io::Cursor<Vec<u8>>>> {
         return self.buffer.clone();
     }
 }

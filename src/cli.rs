@@ -69,7 +69,7 @@ fn parse(args: &clap::ArgMatches) -> anyhow::Result<()> {
         .expect("Unable to parse path as a PathBuf.");
 
     let input = std::fs::read_to_string(path)
-        .with_context(|| format!("Unable to read to a string: {path:?}"))?;
+        .with_context(|| format!("Unable to read file: {path:?}"))?;
 
     let parsed = crate::core::parse::parse(input);
 

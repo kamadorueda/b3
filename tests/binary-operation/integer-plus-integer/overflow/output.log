@@ -1,0 +1,4 @@
+ERROR: An error ocurred. You'll find the context below:
+ERROR: 1. Simplify expression at: "tests/binary-operation/integer-plus-integer/overflow/default.nix"
+ERROR: 2. Add Integer (4611686018427387904) to Integer (4611686018427387904). In "tests/binary-operation/integer-plus-integer/overflow/default.nix", L1C20-L1C23
+ERROR: 3. The result of the addition would overflow, an Integer must be <= 9223372036854775807. In "tests/binary-operation/integer-plus-integer/overflow/default.nix", L1C20-L1C23

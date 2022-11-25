@@ -10,3 +10,4 @@ Commands:
 Options:
       --log-level <log-level>  Verbosity level [default: info] [possible values: trace, debug, info, warn, error, off]
   -h, --help                   Print help information
+

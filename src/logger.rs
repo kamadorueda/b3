@@ -26,7 +26,7 @@ pub fn initialize() -> anyhow::Result<()> {
 
     log::set_logger(Box::leak(logger))
         .map_err(|error| anyhow::anyhow!(error))
-        .context("Unable to initialize logger")
+        .context("Initialize global logger implementation")
 }
 
 impl<Buffer> log::Log for Logger<Buffer>
@@ -53,6 +53,12 @@ where
                 writeln!(buffer, "{args}")
             } else {
                 writeln!(std::io::stdout().lock(), "{args}")
+            }
+        } else if target == "stderr" {
+            if self.buffer_stdout {
+                writeln!(buffer, "{args}")
+            } else {
+                writeln!(std::io::stderr().lock(), "{args}")
             }
         } else {
             let level = metadata.level();

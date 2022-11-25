@@ -143,9 +143,9 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "nixel"
-version = "5.0.0"
+version = "5.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f03d9eb6c3c4a678b32a5b06cf7cb1586e766ab7864ca37331474e2c1ad5d14"
+checksum = "cf5fe15cfbf34f60bfa435c3a62e0147cce779e1f317f9fec303a8a99349037e"
 dependencies = [
  "bindgen",
  "cc",

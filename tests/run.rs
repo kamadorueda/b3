@@ -36,19 +36,18 @@ fn bin() -> anyhow::Result<()> {
             .map(String::from)
             .collect();
 
-        let output = b3::cli::main(args).map_or_else(
-            |error| anyhow::Ok(error.to_string().into_bytes()),
-            |_| {
-                let mut output_log = Vec::new();
-                let mut cursor = buffer
-                    .lock()
-                    .map_err(|error| anyhow::anyhow!("{error}"))?;
-                cursor.seek(SeekFrom::Start(0))?;
-                cursor.read_to_end(&mut output_log)?;
-                cursor.get_mut().clear();
-                Ok(output_log)
-            },
-        )?;
+        b3::errors::print(|| b3::cli::main(args));
+
+        let mut output = Vec::new();
+
+        let mut cursor =
+            buffer.lock().map_err(|error| anyhow::anyhow!("{error}"))?;
+
+        cursor.flush()?;
+        cursor.seek(SeekFrom::Start(0))?;
+        cursor.read_to_end(&mut output)?;
+        cursor.seek(SeekFrom::Start(0))?;
+        cursor.get_mut().clear();
 
         let output_path = path.with_file_name("output.log");
 

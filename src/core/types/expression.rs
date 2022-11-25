@@ -1,6 +1,6 @@
 use crate::core::types::integer::Integer;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) enum Expression {
     Integer(Integer),
 }

@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-
-
 use anyhow::Context;
 
 pub fn main<Args>(args: Args) -> anyhow::Result<()>
@@ -43,14 +41,15 @@ where
         )
         .arg_required_else_help(true)
         .term_width(80)
-        .try_get_matches_from(args)?;
+        .try_get_matches_from(args)
+        .context("Parse command line arguments")?;
 
     log::set_max_level(
         args.get_one::<String>("log-level")
             .expect("Unable to parse log-level as a String.")
             .as_str()
             .parse::<log::LevelFilter>()
-            .expect("Unable to parse log-level as a log::LevelFilter"),
+            .map_err(|error| anyhow::anyhow!(error))?,
     );
     log::debug!("{args:#?}");
 
@@ -70,7 +69,7 @@ fn parse(args: &clap::ArgMatches) -> anyhow::Result<()> {
         .ok_or_else(|| anyhow::anyhow!("Unable to parse path"))?;
 
     let input = std::fs::read_to_string(path)
-        .with_context(|| format!("Unable to read file: {path:?}"))?;
+        .with_context(|| format!("Read file: {path:?}"))?;
 
     let expression = crate::core::parse::parse(input);
 
@@ -82,7 +81,8 @@ fn parse(args: &clap::ArgMatches) -> anyhow::Result<()> {
 fn simplify(args: &clap::ArgMatches) -> anyhow::Result<()> {
     let path = args
         .try_get_one::<std::path::PathBuf>("path")?
-        .ok_or_else(|| anyhow::anyhow!("Unable to parse path"))?;
+        .ok_or_else(|| anyhow::anyhow!("Unable to parse path"))?
+        .to_owned();
 
     let expression = crate::core::simplify::simplify(path)?;
 

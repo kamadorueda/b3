@@ -25,6 +25,7 @@ clap = { version = "*", default-features = false, features = [
   "error-context",
   "std"
 ] }
+derivative = { version = "*", default-features = false, features = [] }
 log = { version = "*", default-features = false, features = [] }
 nixel = { version = "*", default-features = false, features = [] }
 thiserror = { version = "*", default-features = false, features = [] }

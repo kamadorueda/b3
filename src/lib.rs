@@ -5,4 +5,3 @@ pub mod cli;
 pub(crate) mod core;
 pub mod errors;
 pub mod logger;
-pub(crate) mod mem;

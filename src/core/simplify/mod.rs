@@ -9,8 +9,10 @@ use anyhow::Context;
 
 use crate::core::types::expression::Expression;
 use crate::core::types::integer::Integer;
+use crate::core::types::map::Map;
+use crate::core::types::pending::Pending;
+use crate::core::types::scope::Scope;
 use crate::errors::snippet;
-use crate::mem::RcUnwrapOrClone;
 
 pub(crate) fn simplify(mut path: PathBuf) -> anyhow::Result<Rc<Expression>> {
     if std::fs::metadata(&path)
@@ -25,37 +27,44 @@ pub(crate) fn simplify(mut path: PathBuf) -> anyhow::Result<Rc<Expression>> {
 
     let expression = crate::core::parse::parse(input);
 
-    let path: Rc<PathBuf> = path.into();
+    let path: Rc<PathBuf> = Rc::new(path);
 
-    simplify_expression(path.clone(), expression)
+    simplify_expression(Scope::root(), path.clone(), expression)
         .with_context(|| format!("Simplify expression at: {path:?}"))
 }
 
 fn simplify_expression(
+    scope: Rc<Scope>,
     path: Rc<PathBuf>,
     expression: Box<nixel::Expression>,
 ) -> anyhow::Result<Rc<Expression>> {
     match *expression {
         nixel::Expression::BinaryOperation(binary_operation) => {
-            simplify_binary_operation(path, binary_operation)
+            simplify_binary_operation(scope, path, binary_operation)
         },
         nixel::Expression::Integer(integer) => simplify_integer(path, integer),
+        nixel::Expression::LetIn(let_in) => {
+            simplify_let_in(scope, path, let_in)
+        },
         expression => unimplemented!("{expression:#?}"),
     }
 }
 
 fn simplify_binary_operation(
+    scope: Rc<Scope>,
     path: Rc<PathBuf>,
     binary_operation: nixel::BinaryOperation,
 ) -> anyhow::Result<Rc<Expression>> {
     let nixel::BinaryOperation { left, operator, right } = binary_operation;
 
     let left_span = left.span();
-    let operator_span =
-        nixel::Span { start: left.end().into(), end: right.start().into() };
+    let operator_span = nixel::Span {
+        start: Box::new(left.end()),
+        end: Box::new(right.start()),
+    };
     let right_span = right.span();
 
-    let left = simplify_expression(path.clone(), left)
+    let left = simplify_expression(scope.clone(), path.clone(), left)
         .with_context(snippet(
             "Evaluate left operand of an addition".to_owned(),
             path.clone(),
@@ -63,7 +72,7 @@ fn simplify_binary_operation(
         ))?
         .unwrap_or_clone();
 
-    let right = simplify_expression(path.clone(), right)
+    let right = simplify_expression(scope.clone(), path.clone(), right)
         .with_context(snippet(
             "Evaluate right operand of an addition".to_owned(),
             path.clone(),
@@ -90,6 +99,7 @@ fn simplify_binary_operation(
                         operator_span,
                     ))
                 },
+                (left, right) => unimplemented!("{left:?} {right:?}"),
             }
         },
         operator => unimplemented!("{operator:?}"),
@@ -128,4 +138,77 @@ fn simplify_integer(
             *span,
         ))?,
     })))
+}
+
+fn simplify_let_in(
+    scope: Rc<Scope>,
+    path: Rc<PathBuf>,
+    let_in: nixel::LetIn,
+) -> anyhow::Result<Rc<Expression>> {
+    let nixel::LetIn { bindings, target, .. } = let_in;
+
+    let mut scope = scope.specialize();
+    bind_many(&mut scope, bindings);
+    let scope = scope.into_rc();
+
+    let target_span = target.span();
+
+    simplify_expression(scope, path.clone(), target).with_context(snippet(
+        "Evaluate the target of a Let In".to_owned(),
+        path,
+        target_span,
+    ))
+}
+
+pub(crate) fn bind_many(
+    scope: &mut Scope,
+    bindings: Box<[nixel::Binding]>,
+) -> anyhow::Result<()> {
+    for binding in bindings.to_vec() {
+        bind(scope, binding)?;
+    }
+
+    Ok(())
+}
+
+pub(crate) fn bind(
+    scope: &mut Scope,
+    binding: nixel::Binding,
+) -> anyhow::Result<()> {
+    match binding {
+        nixel::Binding::KeyValue(key_value) => unimplemented!("{key_value:?}"),
+        nixel::Binding::Inherit(inherit) => unimplemented!("{inherit:?}"),
+    }
+}
+
+pub(crate) fn bind_key_value(
+    mut scope: &mut Scope,
+    nixel::BindingKeyValue { from, to }: nixel::BindingKeyValue,
+) -> anyhow::Result<()> {
+    let this = scope.this();
+
+    for part in from.to_vec() {
+        match part {
+            nixel::Part::Expression(part_expression) => {
+                unimplemented!("{part_expression:?}")
+            },
+            nixel::Part::Interpolation(part_interpolation) => {
+                unimplemented!("{part_interpolation:?}")
+            },
+            nixel::Part::Raw(part_raw) => {
+                scope
+                    .bindings
+                    .entry(part_raw.content)
+                    // .and_modify(|expression| {})
+                    .or_insert_with(|| {
+                        Rc::new(Expression::Pending(Pending {
+                            expression: to,
+                            scope: scope.this(),
+                        }))
+                    });
+            },
+        }
+    }
+
+    Ok(())
 }

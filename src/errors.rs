@@ -19,20 +19,27 @@ where
     }
 }
 
-pub(crate) fn snippet(
+pub(crate) fn lazy_snippet(
     message: String,
     path: &Rc<PathBuf>,
     span: nixel::Span,
 ) -> Box<dyn FnOnce() -> String> {
+    let path = path.clone();
+
+    Box::new(move || snippet(message, &path, span))
+}
+
+pub(crate) fn snippet(
+    message: String,
+    path: &Rc<PathBuf>,
+    span: nixel::Span,
+) -> String {
     let nixel::Span { start, end } = span;
     let nixel::Position { line: start_line, column: start_column } = *start;
     let nixel::Position { line: end_line, column: end_column } = *end;
-    let path = path.to_owned();
 
-    Box::new(move || {
-        format!(
-            "{message}. In {path:?}, \
-             L{start_line}C{start_column}-L{end_line}C{end_column}"
-        )
-    })
+    format!(
+        "{message}. In {path:?}, \
+         L{start_line}C{start_column}-L{end_line}C{end_column}"
+    )
 }

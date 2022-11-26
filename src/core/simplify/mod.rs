@@ -13,6 +13,7 @@ use crate::core::types::integer::Integer;
 use crate::core::types::map::Map;
 use crate::core::types::pending::Pending;
 use crate::core::types::scope::Scope;
+use crate::errors::lazy_snippet;
 use crate::errors::snippet;
 
 pub(crate) fn simplify(mut path: PathBuf) -> anyhow::Result<Rc<Expression>> {
@@ -69,7 +70,7 @@ fn simplify_binary_operation(
     let right_span = right.span();
 
     let left = simplify_expression(scope, path, left)
-        .with_context(snippet(
+        .with_context(lazy_snippet(
             "Evaluate left operand of an addition".to_owned(),
             path,
             left_span,
@@ -77,7 +78,7 @@ fn simplify_binary_operation(
         .unwrap_or_clone();
 
     let right = simplify_expression(scope, path, right)
-        .with_context(snippet(
+        .with_context(lazy_snippet(
             "Evaluate right operand of an addition".to_owned(),
             path,
             right_span,
@@ -94,7 +95,7 @@ fn simplify_binary_operation(
                         operator_span.clone(),
                         right.value,
                     )
-                    .with_context(snippet(
+                    .with_context(lazy_snippet(
                         format!(
                             "Add Integer ({}) to Integer ({})",
                             left.value, right.value,
@@ -117,7 +118,7 @@ fn simplify_identifier(
 ) -> anyhow::Result<Rc<Expression>> {
     let nixel::Identifier { id, span } = identifier;
 
-    Ok(scope.lookup(&id).with_context(snippet(
+    Ok(scope.lookup(&id).with_context(lazy_snippet(
         format!("Identifier not found: {id}"),
         path,
         *span,
@@ -131,7 +132,7 @@ fn simplify_integer(
     let nixel::Integer { value, span } = integer;
 
     Ok(Rc::new(Expression::Integer(Integer {
-        value: value.parse::<i64>().with_context(snippet(
+        value: value.parse::<i64>().with_context(lazy_snippet(
             format!("Integer must be >= {} and <= {}", i64::MIN, i64::MAX),
             path,
             *span,
@@ -147,11 +148,11 @@ fn simplify_let_in(
     let nixel::LetIn { bindings, target, .. } = let_in;
 
     let scope = scope.clone().specialize();
-    bind_many(&scope, bindings)?;
+    bind_many(&scope, path, bindings)?;
 
     let target_span = target.span();
 
-    simplify_expression(&scope, path, target).with_context(snippet(
+    simplify_expression(&scope, path, target).with_context(lazy_snippet(
         "Evaluate the target of a Let In".to_owned(),
         path,
         target_span,
@@ -167,7 +168,7 @@ fn integer_plus_integer(
     right: i64,
 ) -> anyhow::Result<Rc<Expression>> {
     Ok(Rc::new(Expression::Integer(Integer {
-        value: left.checked_add(right).with_context(snippet(
+        value: left.checked_add(right).with_context(lazy_snippet(
             format!(
                 "The result of the addition would overflow, an Integer must \
                  be <= {}",
@@ -181,19 +182,24 @@ fn integer_plus_integer(
 
 fn bind_many(
     scope: &Rc<Scope>,
+    path: &Rc<PathBuf>,
     bindings: Box<[nixel::Binding]>,
 ) -> anyhow::Result<()> {
     for binding in Vec::from(bindings) {
-        bind(scope, binding)?;
+        bind(scope, path, binding)?;
     }
 
     Ok(())
 }
 
-fn bind(scope: &Rc<Scope>, binding: nixel::Binding) -> anyhow::Result<()> {
+fn bind(
+    scope: &Rc<Scope>,
+    path: &Rc<PathBuf>,
+    binding: nixel::Binding,
+) -> anyhow::Result<()> {
     match binding {
         nixel::Binding::KeyValue(binding_key_value) => {
-            bind_key_value(scope.clone(), binding_key_value)
+            bind_key_value(scope.clone(), path, binding_key_value)
         },
         nixel::Binding::Inherit(binding_inherit) => {
             unimplemented!("{binding_inherit:?}")
@@ -203,12 +209,15 @@ fn bind(scope: &Rc<Scope>, binding: nixel::Binding) -> anyhow::Result<()> {
 
 fn bind_key_value(
     mut scope: Rc<Scope>,
+    path: &Rc<PathBuf>,
     nixel::BindingKeyValue { from, to }: nixel::BindingKeyValue,
 ) -> anyhow::Result<()> {
     let parts = Vec::from(from);
     let mut parts = parts.into_iter().peekable();
 
     while let Some(part) = parts.next() {
+        let is_last_part = parts.peek().is_none();
+
         scope = match part {
             nixel::Part::Expression(part_expression) => {
                 unimplemented!("{part_expression:?}")
@@ -216,13 +225,13 @@ fn bind_key_value(
             nixel::Part::Interpolation(part_interpolation) => {
                 unimplemented!("{part_interpolation:?}")
             },
-            nixel::Part::Raw(nixel::PartRaw { content, .. }) => {
+            nixel::Part::Raw(nixel::PartRaw { content, span }) => {
                 match scope.clone().bindings.try_borrow_mut()?.entry(content) {
                     Entry::Vacant(entry) => {
-                        if parts.peek().is_none() {
+                        if is_last_part {
                             entry.insert(Rc::new(Expression::Pending(
                                 Pending {
-                                    expression: to,
+                                    expression: Rc::from(to),
                                     scope: scope.clone().specialize(),
                                 },
                             )));
@@ -236,10 +245,51 @@ fn bind_key_value(
                         }
                     },
                     Entry::Occupied(entry) => {
-                        if let Expression::Map(map) = entry.get().as_ref() {
-                            map.scope.clone()
-                        } else {
-                            anyhow::bail!("error1 {}", entry.key());
+                        match entry.get().as_ref() {
+                            Expression::Map(map) => {
+                                let key = entry.key();
+
+                                if is_last_part {
+                                    return Err(anyhow::Error::msg(snippet(
+                                        format!(
+                                            "Binding {key:?} was previously \
+                                             defined as a Map, but you want \
+                                             to bind it again as {}",
+                                            to.variant_name(),
+                                        ),
+                                        path,
+                                        span.as_ref().clone(),
+                                    ))
+                                    .context(snippet(
+                                        format!("Bind key {key:?}"),
+                                        path,
+                                        *span,
+                                    )));
+                                } else {
+                                    map.scope.clone()
+                                }
+                            },
+                            Expression::Pending(pending) => {
+                                let key = entry.key();
+
+                                return Err(anyhow::Error::msg(snippet(
+                                    format!(
+                                        "Binding {key:?} was previously \
+                                         defined as a {}, but you want to \
+                                         bind it again as {}",
+                                        pending.expression.variant_name(),
+                                        to.variant_name(),
+                                    ),
+                                    path,
+                                    span.as_ref().clone(),
+                                ))
+                                .context(snippet(
+                                    format!("Bind key {key:?}"),
+                                    path,
+                                    *span,
+                                )));
+                            },
+                            _ => unreachable!(),
                         }
                     },
                 }

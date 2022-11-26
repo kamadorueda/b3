@@ -21,11 +21,13 @@ where
 
 pub(crate) fn snippet(
     message: String,
-    path: Rc<PathBuf>,
-    nixel::Span { start, end }: nixel::Span,
+    path: &Rc<PathBuf>,
+    span: nixel::Span,
 ) -> Box<dyn FnOnce() -> String> {
+    let nixel::Span { start, end } = span;
     let nixel::Position { line: start_line, column: start_column } = *start;
     let nixel::Position { line: end_line, column: end_column } = *end;
+    let path = path.to_owned();
 
     Box::new(move || {
         format!(

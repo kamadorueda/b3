@@ -1,40 +1,50 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use derivative::Derivative;
+
 use crate::core::types::expression::Expression;
 
-#[derive(Debug)]
-pub(crate) struct Scopes {
-    pub(crate) scopes: Vec<Scope>,
-}
-
-impl Scopes {
-    pub(crate) fn root() -> (Self, usize) {
-        (
-            Self {
-                scopes: vec![Scope {
-                    bindings: HashMap::default(),
-                    parent: None,
-                }],
-            },
-            0,
-        )
-    }
-
-    pub(crate) fn specialize(&mut self, scope_index: usize) -> usize {
-        let index = self.scopes.len();
-
-        self.scopes.push(Scope {
-            bindings: HashMap::default(),
-            parent: Some(scope_index),
-        });
-
-        index
-    }
-}
-
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub(crate) struct Scope {
-    pub(crate) bindings: HashMap<Box<str>, Rc<Expression>>,
-    pub(crate) parent: Option<usize>,
+    pub(crate) bindings: RefCell<HashMap<Box<str>, Rc<Expression>>>,
+    #[derivative(Debug = "ignore")]
+    pub(crate) parent: Option<Rc<Scope>>,
+}
+
+impl Scope {
+    pub(crate) fn root() -> Rc<Self> {
+        Rc::new(Self {
+            bindings: RefCell::new(HashMap::default()),
+            parent: None,
+        })
+    }
+
+    pub(crate) fn specialize(self: Rc<Self>) -> Rc<Self> {
+        Rc::new(Self {
+            bindings: RefCell::new(HashMap::default()),
+            parent: Some(self),
+        })
+    }
+
+    pub(crate) fn lookup(
+        self: &Rc<Self>,
+        key: &Box<str>,
+    ) -> Option<Rc<Expression>> {
+        let mut maybe_scope = Some(self);
+
+        while let Some(scope) = maybe_scope {
+            let value = scope.bindings.borrow().get(key).cloned();
+
+            if value.is_some() {
+                return value;
+            }
+
+            maybe_scope = scope.parent.as_ref();
+        }
+
+        None
+    }
 }

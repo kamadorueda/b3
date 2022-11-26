@@ -1,5 +1,15 @@
-Integer(
-    Integer {
-        value: 3,
+Simplified {
+    expression: Integer(
+        Integer {
+            value: 3,
+        },
+    ),
+    scopes: Scopes {
+        scopes: [
+            Scope {
+                bindings: {},
+                parent: None,
+            },
+        ],
     },
-)
+}

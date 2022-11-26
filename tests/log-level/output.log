@@ -1,0 +1,6 @@
+error: Found argument '--log-level error' which wasn't expected, or isn't valid in this context
+
+Usage: b3 [OPTIONS] [COMMAND]
+
+For more information try '--help'
+

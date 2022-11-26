@@ -1,15 +1,5 @@
-Simplified {
-    expression: Integer(
-        Integer {
-            value: 1,
-        },
-    ),
-    scopes: Scopes {
-        scopes: [
-            Scope {
-                bindings: {},
-                parent: None,
-            },
-        ],
+Integer(
+    Integer {
+        value: 1,
     },
-}
+)

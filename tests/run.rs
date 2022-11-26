@@ -22,7 +22,7 @@ fn bin() -> anyhow::Result<()> {
         panic!("Unable to initialize logger: {error}");
     });
 
-    for path in find_files("tests")
+    for path in find_files("tests")?
         .into_iter()
         .filter(|path| path.ends_with("args.lst"))
     {
@@ -36,6 +36,11 @@ fn bin() -> anyhow::Result<()> {
             .map(String::from)
             .collect();
 
+        std::env::set_current_dir(
+            &path
+                .parent()
+                .with_context(|| format!("Get parent of {path:?}"))?,
+        )?;
         b3::errors::print(|| b3::cli::main(args));
 
         let mut output = Vec::new();
@@ -64,11 +69,11 @@ fn bin() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn find_files(path: &str) -> Vec<PathBuf> {
+fn find_files(path: &str) -> anyhow::Result<Vec<PathBuf>> {
     walkdir::WalkDir::new(path)
         .into_iter()
         .filter_map(Result::ok)
         .filter(|entry| entry.file_type().is_file())
-        .map(|entry| entry.path().to_owned())
+        .map(|entry| entry.path().canonicalize().map_err(anyhow::Error::from))
         .collect()
 }

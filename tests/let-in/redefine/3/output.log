@@ -1,0 +1,4 @@
+ERROR: An error ocurred. You'll find the context below:
+ERROR: 1. Simplify expression at: "./default.nix"
+ERROR: 2. Bind "b". In "./default.nix", L3C5-L3C6
+ERROR: 3. Binding "b" was previously defined as Integer, but you want to bind it again as Integer. In "./default.nix", L3C5-L3C6

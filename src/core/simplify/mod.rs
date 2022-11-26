@@ -253,15 +253,15 @@ fn bind_key_value(
                                     return Err(anyhow::Error::msg(snippet(
                                         format!(
                                             "Binding {key:?} was previously \
-                                             defined as a Map, but you want \
-                                             to bind it again as {}",
+                                             defined as Map, but you want to \
+                                             bind it again as {}",
                                             to.variant_name(),
                                         ),
                                         path,
                                         span.as_ref().clone(),
                                     ))
                                     .context(snippet(
-                                        format!("Bind key {key:?}"),
+                                        format!("Bind {key:?}"),
                                         path,
                                         *span,
                                     )));
@@ -275,16 +275,20 @@ fn bind_key_value(
                                 return Err(anyhow::Error::msg(snippet(
                                     format!(
                                         "Binding {key:?} was previously \
-                                         defined as a {}, but you want to \
-                                         bind it again as {}",
+                                         defined as {}, but you want to bind \
+                                         it again as {}",
                                         pending.expression.variant_name(),
-                                        to.variant_name(),
+                                        if is_last_part {
+                                            to.variant_name()
+                                        } else {
+                                            "Map"
+                                        },
                                     ),
                                     path,
                                     span.as_ref().clone(),
                                 ))
                                 .context(snippet(
-                                    format!("Bind key {key:?}"),
+                                    format!("Bind {key:?}"),
                                     path,
                                     *span,
                                 )));

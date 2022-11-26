@@ -1,4 +1,4 @@
 ERROR: An error ocurred. You'll find the context below:
-ERROR: 1. Simplify expression at: "tests/integer/overflow/default.nix"
-ERROR: 2. Integer must be >= -9223372036854775808 and <= 9223372036854775807. In "tests/integer/overflow/default.nix", L1C1-L1C20
+ERROR: 1. Simplify expression at: "./default.nix"
+ERROR: 2. Integer must be >= -9223372036854775808 and <= 9223372036854775807. In "./default.nix", L1C1-L1C20
 ERROR: 3. number too large to fit in target type

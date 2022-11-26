@@ -10,12 +10,3 @@ pub(crate) enum Expression {
     Map(Map),
     Pending(Pending),
 }
-
-impl Expression {
-    pub(crate) fn unwrap_or_clone(self: Rc<Self>) -> Self
-    where
-        Self: Clone,
-    {
-        Rc::try_unwrap(self).unwrap_or_else(|rc| (*rc).clone())
-    }
-}

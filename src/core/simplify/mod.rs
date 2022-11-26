@@ -15,6 +15,7 @@ use crate::core::types::pending::Pending;
 use crate::core::types::scope::Scope;
 use crate::errors::lazy_snippet;
 use crate::errors::snippet;
+use crate::extras::Extras;
 
 pub(crate) fn simplify(mut path: PathBuf) -> anyhow::Result<Rc<Expression>> {
     if std::fs::metadata(&path)
@@ -31,16 +32,16 @@ pub(crate) fn simplify(mut path: PathBuf) -> anyhow::Result<Rc<Expression>> {
     let path = Rc::new(path);
     let expression = crate::core::parse::parse(input);
 
-    simplify_expression(&scope, &path, expression)
+    simplify_expression(&scope, &path, *expression)
         .with_context(|| format!("Simplify expression at: {path:?}"))
 }
 
 fn simplify_expression(
     scope: &Rc<Scope>,
     path: &Rc<PathBuf>,
-    expression: Box<nixel::Expression>,
+    expression: nixel::Expression,
 ) -> anyhow::Result<Rc<Expression>> {
-    match *expression {
+    match expression {
         nixel::Expression::BinaryOperation(binary_operation) => {
             simplify_binary_operation(scope, path, binary_operation)
         },
@@ -69,7 +70,7 @@ fn simplify_binary_operation(
     };
     let right_span = right.span();
 
-    let left = simplify_expression(scope, path, left)
+    let left = simplify_expression(scope, path, *left)
         .with_context(lazy_snippet(
             "Evaluate left operand of an addition".to_owned(),
             path,
@@ -77,7 +78,7 @@ fn simplify_binary_operation(
         ))?
         .unwrap_or_clone();
 
-    let right = simplify_expression(scope, path, right)
+    let right = simplify_expression(scope, path, *right)
         .with_context(lazy_snippet(
             "Evaluate right operand of an addition".to_owned(),
             path,
@@ -118,11 +119,20 @@ fn simplify_identifier(
 ) -> anyhow::Result<Rc<Expression>> {
     let nixel::Identifier { id, span } = identifier;
 
-    Ok(scope.lookup(&id).with_context(lazy_snippet(
-        format!("Identifier not found: {id}"),
-        path,
-        *span,
-    ))?)
+    let expression = scope
+        .lookup(&id)
+        .with_context(lazy_snippet(
+            format!("Identifier not found: {id}"),
+            path,
+            *span,
+        ))?
+        .unwrap_or_clone();
+
+    if let Expression::Pending(Pending { expression, scope }) = expression {
+        simplify_expression(&scope, path, expression.unwrap_or_clone())
+    } else {
+        Ok(Rc::new(expression))
+    }
 }
 
 fn simplify_integer(
@@ -152,7 +162,7 @@ fn simplify_let_in(
 
     let target_span = target.span();
 
-    simplify_expression(&scope, path, target).with_context(lazy_snippet(
+    simplify_expression(&scope, path, *target).with_context(lazy_snippet(
         "Evaluate the target of a Let In".to_owned(),
         path,
         target_span,

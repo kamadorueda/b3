@@ -4,4 +4,5 @@
 pub mod cli;
 pub(crate) mod core;
 pub mod errors;
+pub(crate) mod extras;
 pub mod logger;

@@ -1,24 +1,5 @@
-Pending(
-    Pending {
-        expression: Integer(
-            Integer {
-                value: "1",
-                span: Span {
-                    start: Position {
-                        line: 2,
-                        column: 7,
-                    },
-                    end: Position {
-                        line: 2,
-                        column: 8,
-                    },
-                },
-            },
-        ),
-        scope: Scope {
-            bindings: RefCell {
-                value: {},
-            },
-        },
+Integer(
+    Integer {
+        value: 1,
     },
 )

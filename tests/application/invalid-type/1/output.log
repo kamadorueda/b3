@@ -1,0 +1,3 @@
+ERROR: An error ocurred. You'll find the context below:
+ERROR: 1. Simplify expression at: "./default.nix"
+ERROR: 2. Type Integer cannot be used as a function. In "./default.nix", L1C1-L1C2

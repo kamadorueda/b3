@@ -196,14 +196,21 @@ fn simplify_function_application(
             ))?
             .unwrap_or_clone();
 
-        result = apply_expression_argument(
-            path,
-            scope,
-            result,
-            result_span,
-            result_variant_name,
-            argument,
-        )
+        result = match result {
+            Expression::Function(function) => {
+                apply_function_argument(function, argument)
+            },
+            _ => {
+                return None.context(snippet(
+                    format!(
+                        "Type {result_variant_name} cannot be used as a \
+                         function",
+                    ),
+                    path,
+                    result_span,
+                ));
+            },
+        }
         .with_context(lazy_snippet(
             format!(
                 "Call {result_variant_name} with {argument_variant_name} as \
@@ -281,31 +288,6 @@ fn integer_plus_integer(
     })))
 }
 
-fn apply_expression_argument(
-    path: &Rc<PathBuf>,
-    scope: &Rc<Scope>,
-    expression: Expression,
-    expression_span: nixel::Span,
-    expression_variant_name: &str,
-    argument: Expression,
-) -> anyhow::Result<Rc<Expression>> {
-    match expression {
-        Expression::Function(function) => {
-            apply_function_argument(function, argument)
-        },
-        expression => {
-            return None.context(snippet(
-                format!(
-                    "Type {expression_variant_name} cannot be used as a \
-                     function",
-                ),
-                path,
-                expression_span,
-            ));
-        },
-    }
-}
-
 fn apply_function_argument(
     function: Function,
     argument: Expression,
@@ -315,7 +297,7 @@ fn apply_function_argument(
         scope,
         function,
     } = function;
-    let nixel::Function { head, body, span } = function.unwrap_or_clone();
+    let nixel::Function { head, body, .. } = function.unwrap_or_clone();
 
     let scope = scope.specialize();
 

@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2022 Kevin Amado <kamadorueda@gmail.com>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
-
 {
   inputs = {
     blank.url = "github:divnix/blank";
@@ -62,6 +61,7 @@
           fenix.stable.toolchain
           nixpkgs.cargo-license
           nixpkgs.cargo-tarpaulin
+          nixpkgs.cargo-watch
           nixpkgs.clang
           nixpkgs.linuxPackages_latest.perf
           nixpkgs.mdbook

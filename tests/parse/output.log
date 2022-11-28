@@ -1,3 +1,15 @@
-ERROR: An error ocurred. You'll find the context below:
-ERROR: 1. Read file: "."
-ERROR: 2. Is a directory (os error 21)
+Integer(
+    Integer {
+        value: "1",
+        span: Span {
+            start: Position {
+                line: 1,
+                column: 1,
+            },
+            end: Position {
+                line: 1,
+                column: 2,
+            },
+        },
+    },
+)

@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2022 Kevin Amado <kamadorueda@gmail.com>
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
-<h1 align="center">🐂 Toros</h2>
+<h1 align="center">🐂 B3</h2>
 
 <p align="center">An implementation of Nix in Rust.</p>
 

@@ -35,8 +35,14 @@ pub(crate) fn snippet(
     span: nixel::Span,
 ) -> String {
     let nixel::Span { start, end } = span;
-    let nixel::Position { line: start_line, column: start_column } = *start;
-    let nixel::Position { line: end_line, column: end_column } = *end;
+    let nixel::Position {
+        line: start_line,
+        column: start_column,
+    } = *start;
+    let nixel::Position {
+        line: end_line,
+        column: end_column,
+    } = *end;
 
     format!(
         "{message}. In {path:?}, \
